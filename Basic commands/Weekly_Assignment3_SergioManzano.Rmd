@@ -1,0 +1,181 @@
+---
+title: "Weekly Asignment 3 - Sergio Manzano"
+output: html_document
+date: "2023-10-23"
+fig.align: "center"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Exercises
+
+In today's exercises we are going to create a report in which we will do a summary of the information contained in SNPSdataset.txt.
+
+Here, we can see a part of the data:
+
+```{r, echo=FALSE}
+#echo=FALSE sirve para que no aparezca el código en el Knit/report generado, pero sí aparezca el resultado del código
+
+#install.packages("knitr")
+#install.packages("kableExtra")
+library(knitr)
+library(kableExtra)
+```
+
+```{r, echo=FALSE}
+
+table<-read.table("SNPdataset.txt", sep = "", header=T)
+
+kable(head(table), format = "html") %>% #Este porcentaje sirve para edcir que todo lo que apliquemos de aquí para abajo, se aplicará a la función que hay delante de los %
+  kable_classic() %>% kable_styling(full_width = T)
+
+```
+
+As we can see, the data is classified according to different parameters, that are: case or controls individuals, polymorphisms, gene expression, age and gender.
+
+Thanks to these parameters, we will be able to classify the individuals.
+
+
+### Proportion of cases and controls
+
+In this case we will see the experimental condition to which the patient belongs, without taking into account the other characteristics.
+
+```{r, echo=FALSE}
+
+options(warn = -1) #Sirve para eliminar los Warning que me salen, no los incluyen en el report
+
+cases_controls<-table[which(table$CASECONTROL=="1"),]
+#length(cases_controls$CASECONTROL)
+percentage1<-110*100/157
+
+
+cases_controls2<-table[which(table$CASECONTROL=="0"),]
+#length(cases_controls2$CASECONTROL)
+percentage2<-47*100/157
+
+count<-(c(110,47))
+percentaget<-c(70.1,29.9)
+
+matriz <- matrix(c(count, percentaget), nrow = 2, byrow = TRUE)
+
+colnames(matriz)<-c("Cases", "Controls")
+rownames(matriz)<-c("Count", "Percentage")
+
+kable(matriz, format = "html") %>% 
+  kable_classic() %>% kable_styling(full_width = FALSE)
+
+```
+
+
+Graphically we get this:
+
+```{r, echo=FALSE, fig.align='center'}
+piepl_cascont1<-pie(count, main="Count", clockwise = FALSE, labels= c("Cases","Controls"), col=c("indianred1", "white"))
+
+piepl_cascont2<-pie(percentaget, main="Percentage", clockwise = FALSE, labels= c("Cases","Controls"), col=c("limegreen", "white"))
+
+```
+
+
+### Proportion of women and men
+
+Additionally, it may be interesting to know the proportion between men and women, in relation to the following classifications.
+
+```{r, echo=FALSE, fig.align='center', }
+
+male_female<-table[which(table$GENDER=="Male"),]
+#length(male_female$GENDER)
+percentage1<-75*100/157
+
+male_female2<-table[which(table$GENDER=="Female"),]
+#length(male_female2$GENDER)
+percentage2<-82*100/157
+
+count<-c(75, 82)
+percentaget<-c(47.8,52.2)
+
+matriz <- matrix(c(count, percentaget), nrow = 2, byrow = TRUE)
+
+colnames(matriz)<-c("Male", "Female")
+rownames(matriz)<-c("Count", "Percentage")
+
+kable(matriz, format = "html") %>% 
+  kable_classic() %>% kable_styling(full_width = FALSE)
+
+bp_malefemale1<-barplot(count, main="Count", col=c("indianred1", "white"), names.arg = c("Male", "Female"))
+
+bp_malefemale2<-barplot(percentaget, main="Percentage", col=c("limegreen", "white"), names.arg = c("Male", "Female"))
+
+```
+
+
+
+### Proportion of women and men within cases and controls, respectively.
+
+In addition, we can also see a classification based on the sex of the individuals and each experimental condition.
+
+```{r, echo=FALSE, fig.align='center'}
+male_female_comb0<-table[which(table$GENDER=="Male" & table$CASECONTROL=="0"),]
+#length(male_female_comb0$CASECONTROL)
+p1<-21*100/157
+
+male_female_comb1<-table[which(table$GENDER=="Male" & table$CASECONTROL=="1"),]
+#length(male_female_comb1$CASECONTROL)
+p2<-54*100/157
+
+female_male_comb0<-table[which(table$GENDER=="Female" & table$CASECONTROL=="0"),]
+#length(female_male_comb0$CASECONTROL)
+p3<-26*100/157
+
+female_male_comb1<-table[which(table$GENDER=="Female" & table$CASECONTROL=="1"),]
+#length(female_male_comb1$CASECONTROL)
+p4<-56*100/157
+
+
+count<-c(21,54,26,56)
+percentaget<-c(35.66, 34.39, 16.56, 35.66)
+
+matriz <- matrix(c(count, percentaget), nrow = 2, byrow = TRUE)
+
+colnames(matriz)<-c("Control Male", "Case Male", "Control Female", "Case Female")
+rownames(matriz)<-c("Count", "Percentage")
+
+kable(matriz, format = "html") %>% 
+  kable_classic()
+
+
+barplot(count, main="Count", col=c("white", "red", "grey", "blue"), names.arg = c("Control Male", "Case Male", "Control Female", "Case Female"))
+
+
+pie(percentaget, main="Percentage", clockwise = TRUE, labels= c("Control Male", "Case Male", "Control Female", "Case Female"), col=c("white", "red", "grey", "blue"))
+
+```
+
+
+### Distribution of the genotypes for each specific SNP when stratifying by sex and by case/control
+
+```{r, echo=FALSE, message=FALSE}
+#head(table)
+library(compareGroups)
+
+table$CASECONTROL<-as.factor(table$CASECONTROL) #Tengo que crear una nueva columna en table ya que si no lo toma como un elemento numérico y quiero que lo trate como si fuera una variable
+
+
+SNP_comp<-createTable(compareGroups(SNP1 ~ CASECONTROL + GENDER, table), show.p.mul = TRUE, show.all = TRUE)
+#SNP_comp
+
+```
+
+
+```{r, echo=FALSE}
+#SNP_comp$descr
+kable(SNP_comp$descr, format = "html") %>% 
+  kable_classic() %>% kable_styling(full_width = TRUE)
+
+```
+
+
+

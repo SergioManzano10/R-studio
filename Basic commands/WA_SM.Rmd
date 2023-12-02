@@ -1,0 +1,308 @@
+---
+title: "Weekly Asignment 4 - Sergio Manzano"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE) #message=FALSE me quita los mensajes no deseados
+```
+
+
+```{r, echo=TRUE, warning=F}
+library(knitr)
+library(kableExtra)
+library(ggpubr) #Para la función ggarrange
+library(dplyr) #Para %>%
+library(gridExtra) #Para superponer los histogramas
+library(ggplot2)
+library(tidyr) #Para pivot_longer
+
+
+
+```
+
+### This is a summary of the data that we are going to work with:
+
+
+```{r, echo=TRUE}
+SNPtable<-read.table("SNPdataset.txt", sep="", header = T)
+
+SNPtable$CASECONTROL<-factor(SNPtable$CASECONTROL, levels=c("1","0"), labels = c("Case","Control"))
+
+knitr::kable(head(SNPtable), "html") %>%
+  kable_classic()
+```
+
+
+
+With these data we are going to create different plots for genetic data visualization. 
+
+First of all, we will analyze the distribution of the variable **Gene Expression (GE)**.
+
+* In the figure on the left we can see a histogram that represents the distribution of GE values in the X-axis, and the frequency in the Y-axis. In the histogram, we observe that the frequencies of each GE are low.
+
+* In the figure on the right we can see a boxplot that represents the same distribution of GE values.
+
+
+```{r, echo=TRUE, warning=FALSE, fig.align='center'}
+library(ggplot2)
+
+
+hist<-ggplot(data = SNPtable, aes(x = GENE_EXPRESSION)) +
+  geom_histogram(binwidth = 40, color = "blue", alpha = 0.6) +
+  ggtitle("GE Distribution") +
+  xlab("GENE_EXPRESSION") + 
+  ylab("Frequency") +
+  theme_classic() 
+
+
+boxplot<-ggplot(data = SNPtable, aes(x = factor(0), y = GENE_EXPRESSION)) +
+  geom_boxplot() +
+  ggtitle("GE Distribution") +
+  xlab("Gene Expression") +
+  coord_flip() + 
+  theme(legend.position = "none") +
+  theme(axis.title.y=element_blank(),## removes title in the y-axis
+        axis.text.y=element_blank(), ###removes text ===> 0 in the y-axis
+        axis.ticks.y=element_blank())  ## removes the tick (line) 
+  
+
+ggarrange(ncol=2,nrow=1, hist, boxplot)
+ 
+
+
+```
+
+Now, we will create a histogram and a boxplot to analyze the distribution of the variable **gene expression** in order to compare the distribution of this variable between sexes.
+
+
+```{r, echo=TRUE, warning=FALSE, fig.align='center'}
+
+#Tenemos que superoponer los histogramas porque en his no me deja especificar una "x" y otra "y". Solo me deja que introduzca una "x"
+
+cols<-c("Male"="blue", "Female"= "green")
+
+hst<-ggplot(SNPtable, aes(x=GENE_EXPRESSION, fill=GENDER)) +
+  geom_histogram(SNPtable=subset(SNPtable, SNPtable$GENDER=="Male"), alpha = 0.4) + 
+  geom_histogram(SNPtable=subset(SNPtable, SNPtable$GENDER=="Female"), alpha = 0.4) +
+  ggtitle("GE Stratified by Sex") +
+  ylab("COUNTS") +
+  xlab("GENE_EXPRESSION") +
+  scale_fill_manual(
+    values = cols) + 
+  theme(legend.position = "top") 
+  
+
+
+
+cols<-c("Male"="blue", "Female"= "green")
+  
+bpl<-ggplot(data = SNPtable, aes(x = GENDER, y = GENE_EXPRESSION, fill = GENDER)) +
+  ggtitle("GE Stratified by Sex") +
+  geom_boxplot() +
+  coord_flip() +
+  scale_fill_manual(
+    values = cols) +
+  theme(legend.position = "top") + 
+  theme(axis.title.y=element_blank(),## removes title in the y-axis
+        axis.text.y=element_blank(), ###removes text ===> 0 in the y-axis
+        axis.ticks.y=element_blank())  ## removes the tick (line)
+  
+
+ggarrange(ncol=3, nrow = 1, hst,"", bpl)
+
+
+
+```
+
+
+
+#### Next, we will analyze the proportion between different variables:
+
+First of all, we will see the percentage of women and men displaying each one of the SNP1-related genotypes. It is showed in a table, and later in a boxplot.
+
+
+```{r, echo=TRUE}
+#prop.table(table(SNPtable$SNP1, SNPtable$GENDER)) #Es lo mismo que lo de abajo pero al hacer kabble me gener un output "tibble" que no puedo eliminr
+
+gen_SNP1<- SNPtable %>%
+  group_by(SNP1, GENDER) %>% 
+  summarise(
+    COUNTS = n(),
+    PROPORTION=(COUNTS/157),
+    PERCENTAGE=(COUNTS/157)*100)
+
+knitr::kable(gen_SNP1, "html") %>%
+  kable_classic() %>% kable_styling(full_width = TRUE)
+
+```
+
+
+```{r, echo=TRUE, fig.align='center'}
+
+ggplot(gen_SNP1, aes(x = SNP1, y = PROPORTION, fill = GENDER)) + #aes se utiliza para definir las estéticas del gráfico, en este caso --> "x" para que ponga los "SNP1" en el eje x, "y" para que represente la variable "PROPORTION" en el eje y, y fill para que represente la variable "GENDER" para colorear las barras.
+  geom_bar(stat = "identity") + #se establece para que los valores en y sean tratados como valores absolutos, lo que produce un gráfico de barras apiladas. #Los valores en esa columna se consideran directamente como las alturas de las barras en el gráfico, haciendo que se pueda formar el gráfico apilado (suma de los porcentajes para cada polimorfismo) #Si quito esto no sale nada en el gráfico 
+  labs(title = "SNP1 genotypes among sex", 
+       x = "SNP1",
+       y = "Percentage") + #Para poner todas las etiquetas directamente e vez de xlab, ylab...
+  scale_fill_manual(values = c("Male" = "blue", "Female" = "green")) +
+  theme_classic() + 
+  scale_y_continuous(labels = scales::percent_format())
+
+
+```
+
+Moreover, we are going to classify the individuals with different genotypes for SNP5 within cases and controls. In order to do a more informative graphic, we will represent the relative proportions.
+
+  * Here we can see that all individuals carrying the "AA" genotype correspond to cases.
+  * On the other hand, individuals carrying "AC" and "CC" have similar proportions between cases and controls.
+
+
+```{r, echo=TRUE}
+gen_SNP5<- SNPtable %>%
+  group_by(SNP5, CASECONTROL) %>% 
+  summarise(
+    COUNTS = n(),
+    PROPORTION =(COUNTS/157))
+
+knitr::kable(gen_SNP5, "html") %>% 
+  kable_classic() %>% kable_styling(full_width = TRUE)
+```
+
+
+```{r, echo=TRUE, fig.align='center'}
+#Individuals with different genotypes for SNP5 within cases and controls. Define the scale as unit (all the proportions should sum up to 1).
+
+ggplot(gen_SNP5, aes(x=SNP5, y=PROPORTION, fill=CASECONTROL)) +
+geom_bar(stat = "identity", position = "fill") + 
+  scale_fill_manual(values = c("Case"="Red", "Control"="grey")) +
+  theme_classic() +
+  xlab("RELATIVE PROPORTION")
+
+```
+Furthermore, we will see the proportion of women and men within controls and cases when filtering by individuals older than 35.
+
+  * In the graph we can see that in the case of **Female** the number of **Case** is lower than the observed in the **Male** group
+
+
+```{r, echo=TRUE}
+older<- SNPtable %>%
+  filter(AGE>35) %>%
+  group_by(GENDER, CASECONTROL) %>% 
+  summarise(
+    COUNT = n(),
+    PROPORTION=(COUNT/118))
+
+knitr::kable(older, "html") %>% 
+  kable_classic() %>% kable_styling(full_width = TRUE)
+
+```
+
+```{r, echo=TRUE, fig.align='center'}
+
+ggplot(older, aes(x=GENDER, y=PROPORTION, fill=CASECONTROL)) +
+geom_bar(stat = "identity", position = "fill") + 
+  scale_fill_manual(values = c("Case"="Red", "Control"="grey")) +
+  theme_classic() +
+  ylab("PERCENTAGE") +
+  xlab("GENDER") +
+  scale_y_continuous(labels = scales::percent_format())
+
+
+```
+Additionally, it is interesting to see the relative proportions corresponding to each SNP1 genotype once we classify the sample based on sex.
+
+```{r, echo=TRUE, fig.align='center', warning=FALSE}
+SNP_1_GENDER<-SNPtable %>%
+  group_by(SNP1, GENDER) %>%
+  summarise(
+    COUNTS = n(),
+    PROPORTION = COUNTS/157)
+
+knitr::kable(SNP_1_GENDER, "html") %>% 
+  kable_classic() %>% kable_styling(full_width = TRUE)
+
+```
+
+As we can see in the graph, the distribution of genotypes follows the same pattern in both sexes. With predominance of the **TT** genotype and a lower abundance of the **CC** genotype
+
+```{r, echo=TRUE, fig.align='center', warning=FALSE}
+ggplot(SNP_1_GENDER, aes(x=GENDER, y=PROPORTION, fill=SNP1)) + 
+  geom_bar(stat="identity", position="fill") + 
+  theme_classic2() + ylab("RELATIVE PROPORTION") +
+  theme(legend.position = "right") 
+```
+
+
+If we represent the proportions of each genotype separately and distinguish between males and females, we obtain that the **CC** and **CT** genotypes are more abundant in males. The opposite occurs in the case of the **TT** genotype.
+
+```{r, echo=TRUE, fig.align='center', warning=FALSE}
+
+#Use facet wrap to show the frequency of each genotype of SNP1 for women and for men and color the bars according to the genotype (hint: you will work with geom_bar to display frequency).
+
+ggplot(SNP_1_GENDER, aes(x=GENDER, y=PROPORTION, fill=SNP1)) + 
+  geom_bar(stat="identity") + 
+  theme_classic2() + ylab(" PROPORTION") +
+  theme(legend.position = "right") +
+  facet_wrap(SNP1~., scales="free") + #El punto es solo para que me los separe por genotipos de SNP1 #Probar qué pasa si pongo GENDER
+  theme(strip.text = element_text(face="bold", size=9, colour = "white")) +
+  theme(strip.background = element_rect(fill="black", colour="black",size=1))
+
+
+```
+
+```{r, eval=F, echo=FALSE}
+Enunciado de la siguiente pregunta:
+Use facet grid to show the frequency of each genotype across all the SNPS that we have comparing between women and men. Boxes will be divided by SNPs (vertical) and by sex (horizontal). Color the bars according to the genotype. Be aware that now you need to define a new variable SNPS containing all the different SNPS categories (e.g. SNP1,…, SNP5) and a new variable genotype containing the value for each individual for the specific SNP. To do this step, use the following code to transform the data.
+
+NOTE: You will work with the data.frame snps_long to create the plot.
+```
+
+```{r, echo=TRUE, warning=FALSE, fig.align='center'}
+
+#La función que está justo debajo junta todos los SNP en una sola columna llamada SNP añade una sola columna GENOTYPE con todos los diferentes genotipos
+
+
+snps_long<- SNPtable %>% #SNPtable son los datos de los que se desea transformar la estructura.
+  pivot_longer( #Sirve para pasar de un formato "ancho" a uno "largo"
+  cols=2:6, #Esto especifica las columnas del conjunto de datos SNPtable que se van a transformar de formato ancho a largo. #Estas columnas contendrán datos de genotipos.
+  names_to="SNP", #Esto establece que el nombre de las columnas seleccionadas irán a una nueva columna llamada SNP
+  values_to="GENOTYPE") #Esto establece que los valores asociados en las columnas 2:6 se almacenen en una nueva columna llamada GENOTYYPE
+
+snps_long_prop<-snps_long %>%
+  group_by(GENDER,SNP, GENOTYPE) %>%
+  summarise(
+  COUNT=n()) %>% #Si pongo una "," para separar en vez de "%>%" no aplica la fórmula
+  mutate(PROPORTION=COUNT/sum(COUNT))
+
+#knitr::kable(snps_long_prop, "html") %>% 
+  #kable_classic() %>% kable_styling(full_width = TRUE)
+
+
+```
+
+Finally, we can observe the frequency of each genotype across all the SNPs taking into account the sex.
+
+```{r, echo=TRUE, warning=FALSE, fig.align='center'}
+
+#Boxes will be divided by SNPs (vertical) and by sex (horizontal). Color the bars according to the genotype.
+#NOTE: You will work with the data.frame snps_long to create the plot.
+
+ggplot(snps_long_prop, aes(x=SNP, y=PROPORTION, fill=GENOTYPE)) +
+  geom_bar(stat = "identity", position = "fill") +
+  facet_grid(SNP~GENDER, scales="free") + 
+  xlab("SNPs") +
+  ylab("COUNTS") +
+  theme_classic() + theme(strip.text = element_text(face="bold", size=9, colour = "white")) +
+  theme(strip.background = element_rect(fill="black", colour="black",size=1)) +
+  theme(axis.title.x=element_blank(),## removes title in the y-axis
+        axis.text.x=element_blank(), ###removes text ===> 0 in the y-axis
+        axis.ticks.x=element_blank())
+  
+
+```
+
+
+
+

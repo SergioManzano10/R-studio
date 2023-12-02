@@ -1,0 +1,439 @@
+---
+title: "WA5_SM"
+author: "Sergio Manzano"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# 1 Exercises Efficient Programming
+
+```{r, warning=FALSE}
+library(microbenchmark)
+```
+
+## 1.1 Exercises Part I
+
+Here we propose two ways to compute the square root of a vector. Which do you think will be fastest? Which will be slowest? Use microbenchmarking to test your answers.
+
+* **There is no method faster than another, sometimes it is method 1 and other times method 2. Variations may be due to the state of the system (the computer may be carrying out other processes simultaneously, which affect these times)..**
+
+
+```{r}
+x<-1:10
+
+method1<-function(n) {
+  funct<- x^(1/2)
+  return(funct)
+}
+
+method2<-function(n) {
+  funct<- exp(log(x)/2)
+  return(funct)
+}
+
+
+summary(microbenchmark(method1(n=10), method2(n=10))) 
+
+```
+
+
+
+Use microbenchmarking to rank the basic arithmetic operators (+, -, *, /, and ^) in terms of their speed.
+
+* **The same thing happens as in the previous case, there is no operation faster than another.**
+
+```{r}
+
+x<-10
+
+sum<-function(n) {
+  funct<- x+(1/2)
+  return(funct)
+}
+
+rest<-function(n) {
+  funct<- x-(1/2)
+  return(funct)
+}
+
+mult<-function(n) {
+  funct<- x*(1/2)
+  return(funct)
+}
+
+superind<-function(n) {
+  funct<- x^(1/2)
+  return(funct)
+}
+
+
+summary(microbenchmark(sum(n=10), rest(n=10), mult(n=10), superind(n=10)))
+
+
+```
+
+You can change the units in which the microbenchmark results are expressed with the unit parameter. Use unit = “eps” to show the number of evaluations needed to take 1 second. Repeat the benchmarks above with the eps unit. How does this change your intuition for performance?
+
+* **When using these units, it seems that the superindex operation takes the least time**
+
+```{r}
+
+x<-10
+
+sum<-function(n) {
+  funct<- x+(1/2)
+  return(funct)
+}
+
+rest<-function(n) {
+  funct<- x-(1/2)
+  return(funct)
+}
+
+mult<-function(n) {
+  funct<- x*(1/2)
+  return(funct)
+}
+
+superind<-function(n) {
+  funct<- x^(1/2)
+  return(funct)
+}
+
+n<-10
+
+summary(microbenchmark(sum(n), rest(n), mult(n), superind(n), unit = "eps"))
+
+
+```
+
+Another way to do the above but with one more variable (y).
+
+
+```{r}
+
+x<-c(1:5)
+y<-c(1:10)
+  
+basic_operations<-function(x,y){
+  summary(microbenchmark(x+y, x-y, x*y, x^y, unit = "eps"))
+}
+
+
+basic_operations(x,y)
+
+
+```
+
+
+## 1.2 Exercises Part II
+
+Suppose we want to estimate ∫10x2 using a basic Monte-Carlo method. Essentially, we throw darts at the curve and count the number of darts that fall below the curve. The algorithm of the method consist on:
+
+* Initialise: hits=0
+* for i in 1:N
+ Generate two random numbers, U1, U2 between 0 and 1 (Hint: use runif function). If U2<U21, then hits=hits+1
+ end for.
+* Area estimate = hits/N
+
+Provide a R-code using loops to implementing this Monte-Carlo algorithm. How much time takes your function? 
+
+```{r}
+
+#En este método las operaciones se realizan secuencialmente, una después de la otra, para cada iteración del bucle.
+
+MonteCarlomethod<-function(n){   
+  hits=0
+  for (number in 1:n) {
+    U1<-runif(1,0,1)
+    U2<-runif(1,0,1)
+      if (U2<((U1)^2)){ #Va numero por numero a ver si cumple esta condición y si lo hace suma un hit
+        hits = hits + 1
+    }
+  }
+  Area_estimate=hits/n
+  return(Area_estimate)
+  
+}
+
+summary(microbenchmark(MonteCarlomethod(n=10), unit = "eps"))
+
+
+```
+
+Provide a more efficient code avoiding the previous loops. Illustrate the efficiency gains that can be made by vectorising your code.
+
+```{r}
+#Vectorizar en el contexto de la programación se refiere a escribir código de manera que las operaciones se realicen sobre vectores completos de datos en lugar de realizar cálculos de forma individual sobre elementos en un bucle.
+
+
+
+#Realiza operaciones sobre vectores completos, lo que es más eficiente. Utiliza la función sum para contar cuántos puntos están por debajo de la curva en una sola operación.
+
+MonteCarlomethodVectorized <- function(n) {
+  U1 <- runif(n, 0, 1)
+  U2 <- runif(n, 0, 1)
+  
+  hits <- sum(U2 < U1^2)
+  
+  Area_estimate <- hits / n
+  return(Area_estimate)
+}
+
+
+
+summary(microbenchmark(MonteCarlomethodVectorized(n=10), unit = "eps"))
+
+```
+# 2 Exercises Object-oriented Programming
+
+## Part 1
+
+```{r}
+lista <- list(name="Sergio", age="23", color="Green")
+lista
+```
+
+Define a S3 generic function called whoami.
+
+```{r}
+
+whoami <- function(obj) { 
+  UseMethod("whoami")
+}
+
+```
+
+Define some tagged methods for this generic function. For example: whoami.student, whoami.teacher, in addition to a default method which displays the message “I don’t know who I am”.
+
+```{r}
+
+whoami.student<-function(obj){
+  cat("I´m a student and my name is", lista$name, "\n")
+}
+
+whoami.student(lista)
+
+
+whoami.teacher<-function(obj){
+  cat("I´m a teacher\n")
+}
+
+whoami.default <- function(obj) {
+ cat("I don't know who I am")
+}
+
+```
+
+Tag two objects (e.g., persons), p1 = “Juan” and p2 = “Maria”, by their class members and assign a class student to p1 and p2:.
+
+```{r}
+p1<-"Juan"
+p2<-"Maria"
+
+class(p1)<-"student"
+class(p2)<-"student"
+
+```
+
+Change the class of p1 to teacher
+
+```{r}
+unclass(p1)
+class(p1) <- "teacher"
+
+```
+## Part 2 (Advanced Exercises)
+
+Suppose we have a binomial data xi B(n,p), where n is the number of trials and p is the success probability (Hint: n = length(xi) and p = mean(xi)). The mean and variance of the binomial data are give by E(Xi)=np and Var(Xi)=np(1−p). Define a function, called stats, which returns the mean, standard deviation, and the number of trials (Hint: remember standard deviation is the square root of the variance).
+
+```{r}
+
+set.seed(1234)
+binomial_data <- rbinom(10, 10, 0.1) #Función para generar 10 valores binomiales aleatorios
+
+
+stats<-function (binomial_data){
+  n<-length(binomial_data)
+  p<-mean(binomial_data)
+  mean <- n*p
+  var <- n*p*(1 - p)
+  sd<-sqrt(var)
+  return (c(n, mean, sd))
+}
+
+stats(binomial_data)
+
+```
+
+Generate 100 random numbers from a Bernoulli distribution with p=0.3. The sum of the 100 Bernoulli random variables is supposed to follow B(100,1,0.3) (Hint: use the rbinom function to create n = 100 random number, where each random value is the result of one trial size = 1, with a success probability of 0.3). Compute the mean and standard deviation of the generated distribution using the stats function.
+
+```{r}
+
+set.seed(1234)
+Bernouilli <- rbinom(100, 1, 0.3)
+
+stats(Bernouilli)[2]
+stats(Bernouilli)[3]
+
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
+
+#Esto no es lo que pide el enunciado, es una función aparte
+
+set.seed(1234)
+Bernouilli <- rbinom(100, 1, 0.3)
+
+stats1<-function (Bernouilli){
+  p<-mean(Bernouilli)
+  mean <- p
+  sd <- (p*(1-p))^0.5
+  return (c(mean, sd))
+}
+
+
+stats(Bernouilli)
+
+
+
+
+```
+What happen if we apply the stats function to normal data? (Hint: use the rnorm function) Are the results correct?
+
+* **The results are not correct. We are applying a function to calculate parameters from a binomial distribution to a normal distribution, which is not possible. Because of that, we obtain an NaN in the sd because the sd of a normal distribution is not n*p.**
+
+```{r}
+
+
+set.seed(1234)
+normal_data <- rnorm(10, 10, 0.1) 
+
+stats(normal_data) 
+
+
+```
+Define a function called stats.binomial for the binomial data, and a function called stats.normal for the normal data. Each function implements an appropriate method to compute the mean and standard deviation for its data type.
+
+```{r}
+
+
+
+#Binomial distribution
+
+set.seed(1234)
+binomial_data <- rbinom(10, 10, 0.1) 
+
+stats.binomial<-function (binomial_data){
+  n<-length(binomial_data)
+  p<-mean(binomial_data)
+  mean <- n*p
+  var <- n*p*(1 - p)
+  sd<-sqrt(var)
+  return (c(mean, sd))
+}
+
+stats.binomial(binomial_data)
+
+#Normal distribution
+
+set.seed(1234)
+nornal_data <- rnorm(10, 10, 0.1)
+
+stats.normal<-function (nornal_data){
+  mean <- mean(nornal_data)
+  sd<-sd(nornal_data)
+  return (c(mean, sd))
+}
+
+stats.normal(nornal_data)
+
+
+
+
+```
+
+Assign the corresponding class to a random vector under a normal distribution (y1), and to a random vector under a binomial distribution (y2).
+
+```{r}
+set.seed(1234)
+y1<-rnorm(10, 10, 0.1) 
+set.seed(1234)
+y2<-rbinom(10, 10, 0.1)
+
+
+class(y1)<-"normal"
+class(y2)<-"binomial"
+
+
+```
+
+
+Define a generic function, namely stats, and three methods associated with this generic function. The three method functions include one that computes the mean and standard deviation for the normal and the binomial data, and a default method for handling unknown type of data.
+
+```{r}
+
+stats <- function(obj) {
+  UseMethod("stats")}
+
+stats.default<- function(obj) {
+ cat("Unknown type of data.\n")
+}
+
+
+
+stats.binomial<-function (binomial_data){
+  n<-length(binomial_data)
+  p<-mean(binomial_data)
+  mean <- n*p
+  var <- n*p*(1 - p)
+  sd<-sqrt(var)
+  return (c(mean, sd))
+}
+
+
+stats.normal<-function (normal_data){
+  mean <- mean(normal_data)
+  sd<-sd(normal_data)
+  return (c(mean, sd))
+}
+
+
+
+```
+
+Apply this generic function to y1 and y2.
+
+```{r}
+
+#stats.normal(y1)
+#stats.binomial(y2)
+
+stats(y1)
+stats(y2)
+
+```
+Generate a data vector y3 and apply the stats function to this data vector. What happen?
+
+* **We obtain unknown type of data because we have not said the type of data that is y3.**
+
+```{r}
+y3<-rnorm(10,10,0.1)
+stats(y3) 
+
+```
+
+
+
+
+
+
+
+
+
